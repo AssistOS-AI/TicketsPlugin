@@ -1,0 +1,124 @@
+const constants = require("../utils/constants.js");
+
+async function TicketsPlugin() {
+    let self = {};
+    const persistence = await $$.loadPlugin("StandardPersistence");
+    await persistence.configureTypes({
+        ticket: {
+            email: "string",
+            subject: "string",
+            message: "string",
+            status: "string",
+            resolutionMessage: "string",
+        }
+    });
+    await persistence.createIndex("ticket", "id");
+    await persistence.createGrouping("tickets", "ticket", "status");
+    await persistence.createGrouping("userTickets", "ticket", "email");
+
+    const EmailPlugin = await $$.loadPlugin("EmailPlugin");
+    self.adminPlugin = await $$.loadPlugin("AdminPlugin");
+
+    self.createTicket = async function (email, subject, message) {
+        await persistence.createTicket({
+            email: email,
+            subject: subject,
+            message: message,
+            status: constants.TICKET_STATUS.PENDING
+        });
+    }
+    self.resolveTicket = async function (id, resolutionMessage) {
+        let ticket = await persistence.getTicket(id);
+        if (!ticket) {
+            throw new Error("Ticket not found");
+        }
+        ticket.status = constants.TICKET_STATUS.CLOSED;
+        ticket.resolutionMessage = resolutionMessage;
+        await persistence.updateTicket(id, ticket);
+        try {
+            await EmailPlugin.sendEmail(
+                null, // no userId for system emails
+                ticket.email,
+                process.env.APP_SENDER_EMAIL,
+                `Support ticket ${id} response`,
+                `Response for ticket ${id}: ${resolutionMessage}`,
+                `<b>Response for ticket ${id}:</b> ${resolutionMessage}`
+            );
+        } catch (e) {
+            console.error(`Failed to send email to ${ticket.email}: ${e.message}`);
+        }
+    }
+    self.getTicketsCount = async function () {
+        let tickets = await persistence.getEveryTicket();
+        return tickets.length;
+    }
+    self.getUnresolvedTicketsCount = async function () {
+        let tickets = await persistence.getTicketsByStatus(constants.TICKET_STATUS.PENDING);
+        return tickets.length;
+    }
+    self.getTickets = async function (offset = 0, limit = 10) {
+        let allTickets = await persistence.getEveryTicket();
+        const ticketIds = allTickets.slice(offset, offset + limit);
+        let ticketList = [];
+        for (let ticketId of ticketIds) {
+            let ticket = await persistence.getTicket(ticketId);
+            ticketList.push({
+                id: ticket.id,
+                email: ticket.email,
+                subject: ticket.subject,
+                message: ticket.message,
+                status: ticket.status,
+                resolutionMessage: ticket.resolutionMessage || "",
+            });
+        }
+        return ticketList;
+    }
+    self.getUserTickets = async function (email) {
+        return await persistence.getUserTicketsObjectsByEmail(email);
+    }
+    self.persistence = persistence;
+    return self;
+}
+
+let singletonInstance = undefined;
+
+module.exports = {
+    getInstance: async function () {
+        if (!singletonInstance) {
+            singletonInstance = await TicketsPlugin();
+        }
+        return singletonInstance;
+    },
+    getAllow: function () {
+        return async function (globalUserId, email, command, ...args) {
+            let role;
+            switch (command) {
+                case "createTicket":
+                    return true;
+                case "resolveTicket":
+                case "getTickets":
+                case "getTicketsCount":
+                case "getUnresolvedTicketsCount":
+                    role = await singletonInstance.adminPlugin.getUserRole(email);
+                    if (!role) {
+                        return false;
+                    }
+                    return role === constants.ROLES.ADMIN || role === constants.ROLES.MARKETING;
+                case "getUserTickets":
+                    if (email === args[0]) {
+                        return true;
+                    }
+                    role = await singletonInstance.adminPlugin.getUserRole(email);
+                    if (!role) {
+                        return false;
+                    }
+                    return role === constants.ROLES.ADMIN || role === constants.ROLES.MARKETING;
+                default:
+                    return false;
+            }
+        }
+    },
+    getDependencies: function () {
+        return ["StandardPersistence", "AdminPlugin", "EmailPlugin"];
+    }
+}

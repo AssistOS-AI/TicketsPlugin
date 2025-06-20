@@ -1,0 +1,13 @@
+{
+    "name": "TicketsPlugin",
+    "main": "TicketsPlugin.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AssistOS-AI/TicketsPlugin.git"
+    },
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/AssistOS-AI/TicketsPlugin.git"
+    },
+    "homepage": "https://github.com/AssistOS-AI/TicketsPlugin.git#readme"
+}
