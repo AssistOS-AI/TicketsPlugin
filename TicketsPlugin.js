@@ -100,6 +100,9 @@ module.exports = {
                 case "getTicketsCount":
                 case "getUnresolvedTicketsCount":
                     role = await singletonInstance.adminPlugin.getUserRole(email);
+                    console.log("User role: ", role);
+                    console.log("Admin const: ", constants.ROLES.ADMIN);
+                    console.log("Marketing const: ", constants.ROLES.MARKETING);
                     if (!role) {
                         return false;
                     }
