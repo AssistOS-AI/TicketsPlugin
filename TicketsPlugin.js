@@ -73,7 +73,7 @@ async function TicketsPlugin() {
         }
         return ticketList;
     }
-    self.getUserTickets = async function (email) {
+    self.getOwnTickets = async function (email) {
         return await persistence.getUserTicketsObjectsByEmail(email);
     }
     self.persistence = persistence;
@@ -93,8 +93,6 @@ module.exports = {
         return async function (globalUserId, email, command, ...args) {
             let role;
             switch (command) {
-                case "createTicket":
-                    return true;
                 case "resolveTicket":
                 case "getTickets":
                 case "getTicketsCount":
@@ -107,15 +105,12 @@ module.exports = {
                         return false;
                     }
                     return role === constants.ROLES.ADMIN || role === constants.ROLES.MARKETING;
-                case "getUserTickets":
+                case "createTicket":
+                case "getOwnTickets":
                     if (email === args[0]) {
                         return true;
                     }
-                    role = await singletonInstance.adminPlugin.getUserRole(email);
-                    if (!role) {
-                        return false;
-                    }
-                    return role === constants.ROLES.ADMIN || role === constants.ROLES.MARKETING;
+                    return false;
                 default:
                     return false;
             }
