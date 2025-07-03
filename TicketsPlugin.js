@@ -96,6 +96,7 @@ module.exports = {
                 case "resolveTicket":
                 case "getTickets":
                 case "getTicketsCount":
+                case "getUserTickets":
                 case "getUnresolvedTicketsCount":
                     role = await singletonInstance.adminPlugin.getUserRole(email);
                     console.log("User role: ", role);
