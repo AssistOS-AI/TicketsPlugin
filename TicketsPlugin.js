@@ -77,6 +77,9 @@ async function TicketsPlugin() {
         return await persistence.getUserTicketsObjectsByEmail(email);
     }
     self.persistence = persistence;
+    self.getPublicMethods = function () {
+        return [];
+    }
     return self;
 }
 
