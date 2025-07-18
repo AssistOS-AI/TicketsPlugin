@@ -10,6 +10,7 @@ async function TicketsPlugin() {
             message: "string",
             status: "string",
             resolutionMessage: "string",
+            timeCreated: "string",
         }
     });
     await persistence.createIndex("ticket", "id");
@@ -24,7 +25,8 @@ async function TicketsPlugin() {
             email: email,
             subject: subject,
             message: message,
-            status: constants.TICKET_STATUS.PENDING
+            status: constants.TICKET_STATUS.PENDING,
+            creationTime: new Date().getTime()
         });
     }
     self.resolveTicket = async function (id, resolutionMessage) {
