@@ -26,7 +26,7 @@ async function TicketsPlugin() {
             subject: subject,
             message: message,
             status: constants.TICKET_STATUS.PENDING,
-            creationTime: new Date().getTime()
+            timeCreated: new Date().getTime()
         });
     }
     self.resolveTicket = async function (id, resolutionMessage) {
@@ -36,6 +36,9 @@ async function TicketsPlugin() {
         }
         ticket.status = constants.TICKET_STATUS.CLOSED;
         ticket.resolutionMessage = resolutionMessage;
+        if (!ticket.timeCreated) {
+            ticket.timeCreated = new Date().getTime();
+        }
         await persistence.updateTicket(id, ticket);
         try {
             await EmailPlugin.sendEmail(
@@ -71,6 +74,7 @@ async function TicketsPlugin() {
                 message: ticket.message,
                 status: ticket.status,
                 resolutionMessage: ticket.resolutionMessage || "",
+                timeCreated: ticket.timeCreated || new Date().getTime()
             });
         }
         return ticketList;
@@ -79,6 +83,18 @@ async function TicketsPlugin() {
         return await persistence.getUserTicketsObjectsByEmail(email);
     }
     self.persistence = persistence;
+    let tickets = await persistence.getEveryTicketObject();
+    for (let ticket of tickets) {
+        if (!ticket.timeCreated) {
+            ticket.timeCreated = new Date().getTime();
+            await persistence.updateTicket(ticket.id, ticket);
+        }
+    }
+
+
+    self.getTicket = async function (id) {
+        return await persistence.getTicket(id);
+    }
     self.getPublicMethods = function () {
         return [];
     }
