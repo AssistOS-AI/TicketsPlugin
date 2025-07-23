@@ -41,14 +41,8 @@ async function TicketsPlugin() {
         }
         await persistence.updateTicket(id, ticket);
         try {
-            await EmailPlugin.sendEmail(
-                null, // no userId for system emails
-                ticket.email,
-                process.env.APP_SENDER_EMAIL,
-                `Support ticket ${id} response`,
-                `Response for ticket ${id}: ${resolutionMessage}`,
-                `<b>Response for ticket ${id}:</b> ${resolutionMessage}`
-            );
+            await EmailPlugin.sendEmail(null, // no userId for system emails
+                ticket.email, process.env.APP_SENDER_EMAIL, `Support ticket ${id} response`, `Response for ticket ${id}: ${resolutionMessage}`, `<b>Response for ticket ${id}:</b> ${resolutionMessage}`);
         } catch (e) {
             console.error(`Failed to send email to ${ticket.email}: ${e.message}`);
         }
@@ -57,10 +51,17 @@ async function TicketsPlugin() {
         let tickets = await persistence.getEveryTicket();
         return tickets.length;
     }
+
     self.getUnresolvedTicketsCount = async function () {
         let tickets = await persistence.getTicketsByStatus(constants.TICKET_STATUS.PENDING);
         return tickets.length;
     }
+
+    self.getTicketsByStatus = async function (status) {
+        let tickets = await persistence.getTicketsObjectsByStatus(status);
+        return tickets;
+    }
+
     self.getTickets = async function (offset = 0, limit = 10) {
         let allTickets = await persistence.getEveryTicket();
         const ticketIds = allTickets.slice(offset, offset + limit);
@@ -109,8 +110,7 @@ module.exports = {
             singletonInstance = await TicketsPlugin();
         }
         return singletonInstance;
-    },
-    getAllow: function () {
+    }, getAllow: function () {
         return async function (globalUserId, email, command, ...args) {
             let role;
             switch (command) {
@@ -119,6 +119,7 @@ module.exports = {
                 case "getTicketsCount":
                 case "getUserTickets":
                 case "getUnresolvedTicketsCount":
+                case "getTicketsByStatus":
                     role = await singletonInstance.adminPlugin.getUserRole(email);
                     console.log("User role: ", role);
                     if (!role) {
@@ -135,8 +136,7 @@ module.exports = {
                     return false;
             }
         }
-    },
-    getDependencies: function () {
+    }, getDependencies: function () {
         return ["StandardPersistence", "AdminPlugin", "EmailPlugin"];
     }
 }
