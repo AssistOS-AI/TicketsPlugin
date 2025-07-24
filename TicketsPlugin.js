@@ -2,7 +2,7 @@ const constants = require("../utils/constants.js");
 
 async function TicketsPlugin() {
     let self = {};
-    const persistence = await $$.loadPlugin("StandardPersistence");
+    const persistence = $$.loadPlugin("StandardPersistence");
     await persistence.configureTypes({
         ticket: {
             email: "string",
@@ -17,8 +17,8 @@ async function TicketsPlugin() {
     await persistence.createGrouping("tickets", "ticket", "status");
     await persistence.createGrouping("userTickets", "ticket", "email");
 
-    const EmailPlugin = await $$.loadPlugin("EmailPlugin");
-    self.adminPlugin = await $$.loadPlugin("AdminPlugin");
+    const EmailPlugin = $$.loadPlugin("EmailPlugin");
+    self.adminPlugin = $$.loadPlugin("AdminPlugin");
 
     self.createTicket = async function (email, subject, message) {
         await persistence.createTicket({
