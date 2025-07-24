@@ -29,12 +29,12 @@ async function TicketsPlugin() {
             timeCreated: new Date().getTime()
         });
     }
-    self.resolveTicket = async function (id, resolutionMessage) {
+    self.resolveTicket = async function (id, resolutionMessage, status) {
         let ticket = await persistence.getTicket(id);
         if (!ticket) {
             throw new Error("Ticket not found");
         }
-        ticket.status = constants.TICKET_STATUS.CLOSED;
+        ticket.status = status;
         ticket.resolutionMessage = resolutionMessage;
         if (!ticket.timeCreated) {
             ticket.timeCreated = new Date().getTime();
@@ -59,11 +59,13 @@ async function TicketsPlugin() {
 
     self.getTicketsByStatus = async function (status) {
         let tickets = await persistence.getTicketsObjectsByStatus(status);
+        tickets.reverse();
         return tickets;
     }
 
     self.getTickets = async function (offset = 0, limit = 10) {
         let allTickets = await persistence.getEveryTicket();
+        allTickets.reverse();
         const ticketIds = allTickets.slice(offset, offset + limit);
         let ticketList = [];
         for (let ticketId of ticketIds) {
@@ -81,8 +83,11 @@ async function TicketsPlugin() {
         return ticketList;
     }
     self.getOwnTickets = async function (email) {
-        return await persistence.getUserTicketsObjectsByEmail(email);
+        let tickets = await persistence.getUserTicketsObjectsByEmail(email);
+        tickets.reverse();
+        return tickets;
     }
+
     self.persistence = persistence;
     let tickets = await persistence.getEveryTicketObject();
     for (let ticket of tickets) {
@@ -91,7 +96,6 @@ async function TicketsPlugin() {
             await persistence.updateTicket(ticket.id, ticket);
         }
     }
-
 
     self.getTicket = async function (id) {
         return await persistence.getTicket(id);
